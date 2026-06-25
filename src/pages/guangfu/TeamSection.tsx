@@ -344,11 +344,11 @@ export default function TeamSection() {
   return (
     <section
       ref={sectionRef}
-      id="chapter-08"
-      data-chapter="08"
+      id="chapter-10"
+      data-chapter="10"
       data-title="团队介绍"
       className="gf-chapter"
-      style={{ position: 'relative', height: '240vh', width: '100%', background: 'transparent' }}
+      style={{ position: 'relative', minHeight: '220vh', width: '100%', background: 'transparent' }}
     >
       <div
         ref={innerRef}
@@ -365,9 +365,8 @@ export default function TeamSection() {
         style={{
           position: 'sticky',
           top: 0,
-          height: '100vh',
+          minHeight: '100vh',
           width: '100%',
-          overflow: 'hidden',
         }}
       >
         {/* Background — transparent; page-level .gf-flow gradient shows through. */}
@@ -544,11 +543,13 @@ export default function TeamSection() {
             whole region remains a single Chapter 08. */}
         <div
           ref={deptRevealRef}
+          className="gf-dept-intro"
           style={{
             position: 'relative',
             width: '100%',
-            minHeight: '120vh',
-            padding: 'clamp(72px, 10vh, 140px) max(24px, 6vw) clamp(96px, 14vh, 180px)',
+            minHeight: '80vh',
+            marginTop: '20vh',
+            padding: 'clamp(80px, 10vh, 120px) max(16px, 4vw) clamp(64px, 10vh, 120px)',
             background:
               'linear-gradient(to bottom, rgba(8,10,18,0) 0%, rgba(8,10,18,0.6) 18%, rgba(8,10,18,0.92) 50%, #08080f 100%)',
             color: 'var(--gf-ivory)',

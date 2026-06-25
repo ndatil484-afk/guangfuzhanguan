@@ -134,13 +134,7 @@
   }
 }
 
-.gf-chapter[data-title="符号提取"] {
-  /* 整体内容往下移动，确保顶部标签在视口内 */
-  /* 使用transform不影响其他元素的位置 */
-  transform: translateY(60px);
-  /* 确保transform不影响fixed定位的元素 */
-  will-change: transform;
-}
+
 
 /* ── Ch4 符号提取 — 移动端响应式适配 ──
  * 在小屏幕下让章节角标/副标题字号缩小并避开与圆环中心的冲突；
@@ -734,29 +728,91 @@
 
 @media (max-width: 760px) {
   .gf-team-poster {
+    position: relative;
     flex-direction: column;
     align-items: center;
-    gap: 18px;
-    padding: 90px 16px 100px;
-    overflow-y: auto;
+    gap: 24px;
+    padding: 200px 16px 100px;
+    overflow-y: visible;
+    height: auto;
+    transform: none;
+    min-height: 120vh;
   }
   .gf-team-figure.is-left,
   .gf-team-figure.is-right,
   .gf-team-figure.is-center {
-    width: min(74vw, 280px);
-    height: clamp(280px, 64vw, 400px);
+    width: min(55vw, 220px);
+    height: clamp(220px, 50vw, 300px);
     margin-bottom: 0;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .gf-team-figure .gf-team-portrait-img {
+    object-position: center 55%;
+  }
+  .gf-team-figure .gf-team-portrait-wrap {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 96%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 96%,
+      transparent 100%
+    );
   }
   .gf-team-caption.is-left,
   .gf-team-caption.is-right,
   .gf-team-caption.is-center {
     position: static;
-    margin: 8px 0 0;
+    margin: 12px 0 20px;
     align-items: center;
     text-align: center;
   }
   .gf-team-ground {
     display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .gf-team-poster {
+    gap: 20px;
+    padding: 180px 12px 80px;
+    min-height: 140vh;
+  }
+  .gf-team-figure.is-left,
+  .gf-team-figure.is-right,
+  .gf-team-figure.is-center {
+    width: min(60vw, 200px);
+    height: clamp(240px, 60vw, 320px);
+  }
+  .gf-team-figure .gf-team-portrait-img {
+    object-position: center 50%;
+  }
+  .gf-team-caption.is-left,
+  .gf-team-caption.is-right,
+  .gf-team-caption.is-center {
+    margin: 10px 0 16px;
+  }
+}
+
+@media (max-width: 380px) {
+  .gf-team-poster {
+    gap: 18px;
+    padding: 160px 10px 60px;
+    min-height: 160vh;
+  }
+  .gf-team-figure.is-left,
+  .gf-team-figure.is-right,
+  .gf-team-figure.is-center {
+    width: min(65vw, 180px);
+    height: clamp(220px, 65vw, 300px);
+  }
+  .gf-team-figure .gf-team-portrait-img {
+    object-position: center 45%;
   }
 }
 
@@ -899,6 +955,144 @@
     animation: none !important;
     opacity: 1 !important;
     stroke-dashoffset: 0 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .gf-tactile-header {
+    margin-bottom: 40px !important;
+  }
+
+  .gf-tactile-subtitle {
+    font-size: 10px !important;
+    letter-spacing: 2px !important;
+  }
+
+  .gf-tactile-title {
+    font-size: clamp(24px, 5vw, 36px) !important;
+    margin-top: 12px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .gf-tactile-desc {
+    font-size: clamp(12px, 2vw, 14px) !important;
+    line-height: 1.6 !important;
+    max-width: 100% !important;
+  }
+
+  .gf-tactile-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .gf-tactile-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .gf-tactile-title {
+    font-size: clamp(20px, 6vw, 28px) !important;
+  }
+
+  .gf-tactile-desc {
+    font-size: 12px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .gf-chapter[data-title="致谢"] {
+    padding: 20px !important;
+  }
+
+  .gf-chapter[data-title="致谢"] h2 {
+    font-size: 24px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .gf-chapter[data-title="致谢"] p {
+    font-size: 13px !important;
+    line-height: 1.8 !important;
+    margin-bottom: 20px !important;
+  }
+
+  .gf-chapter[data-title="致谢"] h3 {
+    font-size: 10px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .gf-chapter[data-title="致谢"] .gf-contact-info {
+    font-size: 12px !important;
+  }
+
+  .gf-chapter[data-title="致谢"] .gf-copyright {
+    font-size: 10px !important;
+    padding-top: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .gf-chapter[data-title="致谢"] h2 {
+    font-size: 20px !important;
+  }
+
+  .gf-chapter[data-title="致谢"] p {
+    font-size: 12px !important;
+    line-height: 1.6 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .gf-chapter[data-title="四幕空间"] {
+    height: auto !important;
+    min-height: 100vh !important;
+  }
+
+  .gf-chapter[data-title="色温交互"] {
+    height: 100vh !important;
+  }
+
+  .gf-chapter[data-title="材料"] {
+    height: auto !important;
+    min-height: 100vh !important;
+  }
+
+  .gf-chapter[data-title="设计转译"] {
+    height: auto !important;
+    min-height: 100vh !important;
+  }
+
+  .gf-chapter[data-title="团队介绍"] {
+    height: auto !important;
+    min-height: 100vh !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .gf-chapter[data-title="团队介绍"] {
+    min-height: 260vh !important;
+  }
+  .gf-dept-intro {
+    margin-top: 120vh;
+  }
+}
+
+@media (max-width: 480px) {
+  .gf-chapter[data-title="团队介绍"] {
+    min-height: 300vh !important;
+  }
+  .gf-dept-intro {
+    margin-top: 140vh;
+  }
+}
+
+@media (max-width: 380px) {
+  .gf-chapter[data-title="团队介绍"] {
+    min-height: 340vh !important;
+  }
+  .gf-dept-intro {
+    margin-top: 160vh;
   }
 }
 

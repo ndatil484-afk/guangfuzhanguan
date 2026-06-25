@@ -624,9 +624,9 @@ export default function LightSystemSection() {
   return (
     <section
       ref={sectionRef}
-      id="chapter-07b"
-      data-chapter="07"
-      data-title="空间体验"
+      id="chapter-08"
+      data-chapter="08"
+      data-title="四幕空间"
       className="gf-chapter"
       style={{ position: 'relative', height: '160vh', width: '100%', background: 'transparent' }}
     >

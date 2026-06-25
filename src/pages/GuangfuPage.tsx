@@ -10,7 +10,9 @@ import FourActsSection from './guangfu/FourActsSection';
 import MaterialsSection from './guangfu/MaterialsSection';
 import LightSystemSection from './guangfu/LightSystemSection';
 import ColorTempSection from './guangfu/ColorTempSection';
+import TactileExperienceSection from './guangfu/TactileExperienceSection';
 import TeamSection from './guangfu/TeamSection';
+import FooterSection from './guangfu/FooterSection';
 import './guangfu/guangfu.css';
 
 const CHAPTERS = [
@@ -20,8 +22,11 @@ const CHAPTERS = [
   { id: 'chapter-04', label: '符号提取', index: '04' },
   { id: 'chapter-05', label: '设计转译', index: '05' },
   { id: 'chapter-06', label: '材料', index: '06' },
-  { id: 'chapter-07', label: '空间体验', index: '07' },
-  { id: 'chapter-08', label: '团队介绍', index: '08' },
+  { id: 'chapter-07', label: '色温交互', index: '07' },
+  { id: 'chapter-08', label: '四幕空间', index: '08' },
+  { id: 'chapter-09', label: '触觉体验', index: '09' },
+  { id: 'chapter-10', label: '团队介绍', index: '10' },
+  { id: 'chapter-11', label: '致谢', index: '11' },
 ];
 
 const PAGE_LABELS = CHAPTERS.map((c) => c.label);
@@ -315,15 +320,29 @@ export default function GuangfuPage() {
           <MaterialsSection />
         </div>
 
-        {/* Chapter 07 — 空间体验 */}
+        {/* Chapter 07 — 色温交互 */}
         <div ref={setChapterRef(6)}>
           <ColorTempSection />
+        </div>
+
+        {/* Chapter 08 — 四幕空间 */}
+        <div ref={setChapterRef(7)}>
           <LightSystemSection />
         </div>
 
-        {/* Chapter 08 — 团队介绍 */}
-        <div ref={setChapterRef(7)}>
+        {/* Chapter 09 — 触觉体验 */}
+        <div ref={setChapterRef(8)}>
+          <TactileExperienceSection />
+        </div>
+
+        {/* Chapter 10 — 团队介绍 */}
+        <div ref={setChapterRef(9)}>
           <TeamSection />
+        </div>
+
+        {/* Chapter 11 — 致谢 */}
+        <div ref={setChapterRef(10)}>
+          <FooterSection />
         </div>
       </main>
     </div>
