@@ -1,0 +1,12 @@
+{
+  "name": "广府1",
+  "description": null,
+  "icon": "https://qingyu.nuwax.com/api/logo/page/%E5%B9%BF%E5%BA%9C",
+  "coverImg": "https://qingyu.nuwax.com/api/f/s3/app-dev/20260621/a92f8bbc47934571bed33563d6cd074a.png",
+  "coverImgSourceType": "SYSTEM",
+  "needLogin": false,
+  "proxyConfigs": null,
+  "pageArgConfigs": null,
+  "dataSourcePlugins": null,
+  "dataSourceWorkflows": null
+}
