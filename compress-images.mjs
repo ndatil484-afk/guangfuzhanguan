@@ -3,8 +3,8 @@ import fs from 'fs';
 import path from 'path';
 
 const assetDir = './src/assets';
-const maxWidth = 1200;
-const quality = 70;
+const maxWidth = 800;
+const quality = 60;
 
 async function compressImages(dir) {
   const files = fs.readdirSync(dir);
@@ -23,19 +23,19 @@ async function compressImages(dir) {
         if (ext === '.png') {
           await sharp(filePath)
             .resize(maxWidth)
-            .png({ quality: Math.min(quality, 90), compressionLevel: 9 })
+            .png({ quality: Math.min(quality, 85), compressionLevel: 9 })
             .toFile(filePath + '.temp');
         } else {
           await sharp(filePath)
             .resize(maxWidth)
-            .jpeg({ quality, progressive: true })
+            .jpeg({ quality, progressive: true, mozjpeg: true })
             .toFile(filePath + '.temp');
         }
         
         fs.renameSync(filePath + '.temp', filePath);
         const newSize = fs.statSync(filePath).size;
         const saved = ((originalSize - newSize) / originalSize * 100).toFixed(1);
-        console.log(`压缩 ${file}: ${(originalSize/1024).toFixed(1)}KB → ${(newSize/1024).toFixed(1)}KB (节省 ${saved}%)`);
+        console.log(`${file}: ${(originalSize/1024).toFixed(1)}KB → ${(newSize/1024).toFixed(1)}KB (节省 ${saved}%)`);
       } catch (err) {
         console.error(`压缩 ${file} 失败:`, err);
       }
