@@ -742,13 +742,13 @@
   .gf-team-figure.is-right,
   .gf-team-figure.is-center {
     width: min(55vw, 220px);
-    height: clamp(220px, 50vw, 300px);
+    height: clamp(240px, 55vw, 320px);
     margin-bottom: 0;
     opacity: 1 !important;
     transform: none !important;
   }
   .gf-team-figure .gf-team-portrait-img {
-    object-position: center 55%;
+    object-position: center 68%;
   }
   .gf-team-figure .gf-team-portrait-wrap {
     -webkit-mask-image: linear-gradient(
@@ -787,10 +787,10 @@
   .gf-team-figure.is-right,
   .gf-team-figure.is-center {
     width: min(60vw, 200px);
-    height: clamp(240px, 60vw, 320px);
+    height: clamp(260px, 62vw, 340px);
   }
   .gf-team-figure .gf-team-portrait-img {
-    object-position: center 50%;
+    object-position: center 65%;
   }
   .gf-team-caption.is-left,
   .gf-team-caption.is-right,
@@ -809,10 +809,10 @@
   .gf-team-figure.is-right,
   .gf-team-figure.is-center {
     width: min(65vw, 180px);
-    height: clamp(220px, 65vw, 300px);
+    height: clamp(240px, 68vw, 320px);
   }
   .gf-team-figure .gf-team-portrait-img {
-    object-position: center 45%;
+    object-position: center 62%;
   }
 }
 

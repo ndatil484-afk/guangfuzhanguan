@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useChapterReveal } from '@/lib/useChapterReveal';
+import GfAmbientParticles from '@/components/GfAmbientParticles';
 import brickImg from '@/assets/tactile/brick.jpg';
 import woodImg from '@/assets/tactile/wood.jpg';
 import ceramicImg from '@/assets/tactile/ceramic.jpg';
@@ -12,9 +12,9 @@ const MATERIALS = [
     id: 'brick',
     name: '青砖',
     en: 'GREEN BRICK',
-    description: '粗糙而温暖的触感，仿佛能感受到时光的沉淀。指尖划过砖面的纹理，如同触摸历史的年轮。',
+    description: '粗糙而温暖的触感，仿佛能感受到时光的沉淀。',
     image: brickImg,
-    particles: { color: [74, 85, 104], count: 30 },
+    color: [74, 85, 104],
     temperature: '微凉',
     weight: '厚重',
   },
@@ -22,19 +22,19 @@ const MATERIALS = [
     id: 'wood',
     name: '酸枝木',
     en: 'ROSEWOOD',
-    description: '细腻温润的木纹，散发着淡淡的木香。光滑的表面随着岁月流逝愈发光亮，触摸时如轻抚丝绸。',
+    description: '细腻温润的木纹，散发着淡淡的木香。',
     image: woodImg,
-    particles: { color: [92, 61, 46], count: 20 },
+    color: [92, 61, 46],
     temperature: '温润',
     weight: '坚实',
   },
   {
     id: 'ceramic',
     name: '广彩瓷',
-    en: 'GUANGCAI PORCELAIN',
-    description: '光滑如玉的釉面，细腻而清凉。彩釉在指尖滑过，仿佛触摸到岭南夏日的清风。',
+    en: 'GUANGCAI',
+    description: '光滑如玉的釉面，细腻而清凉。',
     image: ceramicImg,
-    particles: { color: [200, 200, 210], count: 25 },
+    color: [200, 180, 150],
     temperature: '清凉',
     weight: '轻盈',
   },
@@ -42,9 +42,9 @@ const MATERIALS = [
     id: 'silk',
     name: '香云纱',
     en: 'GAMUZA SILK',
-    description: '柔软而有光泽的触感，丝滑如流水。独特的薯莨染工艺赋予它时光沉淀的质感，凉爽透气。',
+    description: '柔软而有光泽的触感，丝滑如流水。',
     image: silkImg,
-    particles: { color: [139, 90, 43], count: 35 },
+    color: [139, 90, 43],
     temperature: '凉爽',
     weight: '轻柔',
   },
@@ -52,9 +52,9 @@ const MATERIALS = [
     id: 'stone',
     name: '麻石',
     en: 'GRANITE',
-    description: '坚硬而粗粝的表面，蕴含着山的沉稳。冰凉的触感让人感受到自然的力量，厚重而可靠。',
+    description: '坚硬而粗粝的表面，蕴含着山的沉稳。',
     image: stoneImg,
-    particles: { color: [107, 114, 128], count: 15 },
+    color: [107, 114, 128],
     temperature: '冰凉',
     weight: '厚重',
   },
@@ -62,409 +62,729 @@ const MATERIALS = [
     id: 'paper',
     name: '宣纸',
     en: 'RICE PAPER',
-    description: '轻薄而坚韧的触感，纤维交织的纹理在指尖留下温柔的记忆。水墨渗透的瞬间，文化的温度传递开来。',
+    description: '轻薄而坚韧的触感，纤维交织的纹理。',
     image: paperImg,
-    particles: { color: [254, 243, 199], count: 40 },
+    color: [230, 220, 180],
     temperature: '温暖',
     weight: '轻薄',
   },
 ];
 
-function MaterialCard({ material, index }: { material: typeof MATERIALS[0]; index: number }) {
-  const [isHovered, setIsHovered] = useState(false);
-  const [particles, setParticles] = useState<{ x: number; y: number; opacity: number; size: number }[]>([]);
-  const [showPreview, setShowPreview] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
+const CENTER_X = 50;
+const CENTER_Y = 50;
+const ASPECT = 16 / 9;
+
+const getOrbitRadius = (vw: number): number => {
+  if (vw <= 480) return 28;
+  if (vw <= 768) return 30;
+  return 32;
+};
+
+const getMaterialPositions = (vw: number) => {
+  const r = getOrbitRadius(vw);
+  const materials = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
+    const x = CENTER_X + (Math.cos(angle) * r) / ASPECT;
+    const y = CENTER_Y + Math.sin(angle) * r;
+    materials.push({
+      ...MATERIALS[i],
+      x,
+      y,
+      angle,
+      radius: r,
+    });
+  }
+  return materials;
+};
+
+const easeOutBack = (t: number): number => {
+  const c1 = 1.4;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+};
+
+const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
+
+const getBadgeSize = (vw: number): number => {
+  if (vw <= 480) return 56;
+  if (vw <= 768) return 72;
+  return 88;
+};
+
+export default function TactileExperienceSection() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const progressRef = useRef(0);
+  const teleportRef = useRef(false);
+  const viewportRef = useRef({ vw: typeof window !== 'undefined' ? window.innerWidth : 1280 });
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState<typeof MATERIALS[0] | null>(null);
+
+  const iconRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const labelRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const connRefs = useRef<Array<SVGPathElement | null>>([]);
+  const connFlowRefs = useRef<Array<SVGCircleElement | null>>([]);
+
+  const initialVw = typeof window !== 'undefined' ? window.innerWidth : 1280;
+  const materials = getMaterialPositions(initialVw);
+
+  const apply = (p: number) => {
+    p = clamp01(p);
+    const t = easeOutBack(p);
+    const rot = p * 120;
+    const op = clamp01(p * 1.15);
+
+    materials.forEach((mat, i) => {
+      const el = iconRefs.current[i];
+      if (!el) return;
+
+      const radius = mat.radius * t;
+      const angle = mat.angle + (1 - p) * 0.8;
+      const dx = (Math.cos(angle) * radius) / ASPECT;
+      const dy = Math.sin(angle) * radius;
+      const x = CENTER_X + dx;
+      const y = CENTER_Y + dy;
+
+      el.style.left = `${x}%`;
+      el.style.top = `${y}%`;
+      el.style.transform = `translate(-50%, -50%) scale(${Math.max(0, t)}) rotate(${rot * (i % 2 === 0 ? 1 : -1)}deg)`;
+      el.style.opacity = `${op}`;
+    });
+
+    connRefs.current.forEach((conn, i) => {
+      if (!conn) return;
+      const mat = materials[i];
+      const radius = mat.radius * t;
+      const angle = mat.angle + (1 - p) * 0.8;
+      const ex = CENTER_X + (Math.cos(angle) * radius) / ASPECT;
+      const ey = CENTER_Y + Math.sin(angle) * radius;
+      const midX = (CENTER_X + ex) / 2;
+      const midY = (CENTER_Y + ey) / 2;
+      conn.setAttribute('d', `M ${CENTER_X} ${CENTER_Y} Q ${midX} ${midY} ${ex} ${ey}`);
+      conn.style.opacity = `${clamp01(p * 1.1) * 0.6}`;
+
+      const flow = connFlowRefs.current[i];
+      if (flow) {
+        const period = 3000;
+        const time = performance.now();
+        const tau = ((time % period) / period) * 2;
+        const ft = tau <= 1 ? tau : 2 - tau;
+        const u = 1 - ft;
+        const fx = u * u * CENTER_X + 2 * u * ft * midX + ft * ft * ex;
+        const fy = u * u * CENTER_Y + 2 * u * ft * midY + ft * ft * ey;
+        flow.setAttribute('cx', `${fx}`);
+        flow.setAttribute('cy', `${fy}`);
+        flow.setAttribute('r', `${0.8 * (0.7 + ft * 0.3)}`);
+        flow.style.opacity = `${clamp01(p * 1.1) * (0.85 * (1 - ft * 0.5))}`;
+      }
+    });
+
+    labelRefs.current.forEach((lab) => {
+      if (lab) lab.style.opacity = `${clamp01(p * 1.2)}`;
+    });
+  };
 
   useEffect(() => {
-    if (!isHovered) {
-      setParticles([]);
-      return;
-    }
+    const section = sectionRef.current;
+    if (!section) return;
 
-    const interval = setInterval(() => {
-      setParticles(prev => {
-        const newParticle = {
-          x: Math.random() * 100,
-          y: Math.random() * 100,
-          opacity: Math.random() * 0.5 + 0.2,
-          size: Math.random() * 4 + 2,
-        };
-        return [...prev.slice(-15), newParticle];
-      });
-    }, 200);
+    let raf = 0;
+    const tick = () => {
+      raf = 0;
+      const vh = window.innerHeight;
+      const vw = window.innerWidth;
+      viewportRef.current.vw = vw;
+      const rect = section.getBoundingClientRect();
+      const secCenter = rect.top + rect.height / 2;
+      const vpCenter = vh / 2;
+      const dist = Math.abs(secCenter - vpCenter);
+      const target = clamp01(1 - dist / vh);
 
-    return () => clearInterval(interval);
-  }, [isHovered]);
+      if (teleportRef.current) {
+        progressRef.current = target;
+      } else {
+        const cur = progressRef.current;
+        const next = cur + (target - cur) * 0.18;
+        progressRef.current = Math.abs(target - next) < 0.001 ? target : next;
+      }
+      apply(progressRef.current);
+
+      const settled = Math.abs(target - progressRef.current) < 0.001;
+      const visible = progressRef.current > 0.01;
+      const needMore = !settled || visible || (teleportRef.current && target > 0.001);
+      if (needMore) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        raf = 0;
+      }
+    };
+
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+
+    schedule();
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      const isNav =
+        e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'ArrowLeft' ||
+        e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === 'PageUp' ||
+        e.key === 'Home' || e.key === 'End';
+      if (!isNav) return;
+      teleportRef.current = true;
+      schedule();
+    };
+    const onWheel = () => {
+      if (teleportRef.current) {
+        teleportRef.current = false;
+        schedule();
+      }
+    };
+
+    window.addEventListener('keydown', onKey, { passive: true });
+    window.addEventListener('wheel', onWheel, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('wheel', onWheel);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  const badgeSize = getBadgeSize(initialVw);
 
   return (
-    <div
-      ref={cardRef}
-      className="gf-tactile-card"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+    <section
+      ref={sectionRef}
+      id="chapter-09"
+      data-title="触觉体验"
+      className="gf-chapter"
       style={{
         position: 'relative',
         width: '100%',
-        aspectRatio: '4/3',
-        borderRadius: '12px',
+        height: '100vh',
+        background: 'transparent',
         overflow: 'hidden',
-        cursor: 'pointer',
-        transition: 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease',
-        transform: isHovered ? 'scale(1.03)' : 'scale(1)',
-        boxShadow: isHovered ? '0 20px 60px rgba(0,0,0,0.4)' : '0 8px 30px rgba(0,0,0,0.2)',
-        opacity: 0,
-        animation: `fadeInUp 0.6s ease ${index * 0.1}s forwards`,
       }}
     >
-      <img
-        src={material.image}
-        alt={material.name}
+      {/* 背景光效 */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+          background:
+            'radial-gradient(ellipse 55% 50% at 50% 46%, rgba(201,168,76,0.08) 0%, rgba(201,168,76,0.03) 35%, rgba(10,13,20,0) 65%)',
+        }}
+      />
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+          background:
+            'radial-gradient(ellipse 90% 90% at 50% 50%, rgba(10,13,20,0) 55%, rgba(6,8,12,0.55) 100%)',
+        }}
+      />
+
+      {/* 金尘粒子 */}
+      <GfAmbientParticles
+        count={80}
+        opacity={0.42}
+        minSize={0.4}
+        maxSize={1.6}
+        color={[201, 168, 76]}
+        driftX={20}
+        driftY={28}
+        style={{ zIndex: 1 }}
+      />
+
+      {/* 圆环系统 SVG */}
+      <svg
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
         style={{
           position: 'absolute',
           inset: 0,
           width: '100%',
           height: '100%',
-          objectFit: 'cover',
-          transition: 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
-          transform: isHovered ? 'scale(1.1)' : 'scale(1)',
-        }}
-      />
-
-      {particles.map((p, i) => (
-        <div
-          key={i}
-          style={{
-            position: 'absolute',
-            left: `${p.x}%`,
-            top: `${p.y}%`,
-            width: `${p.size}px`,
-            height: `${p.size}px`,
-            borderRadius: '50%',
-            background: `rgba(${material.particles.color.join(',')}, ${p.opacity})`,
-            transform: 'translate(-50%, -50%)',
-            animation: 'particleFloat 2s ease-out forwards',
-            zIndex: 2,
-          }}
-        />
-      ))}
-
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: isHovered
-            ? 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)'
-            : 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)',
-          transition: 'background 0.4s ease',
-        }}
-      />
-
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '0',
-          left: '0',
-          right: '0',
-          padding: '24px',
-          transform: isHovered ? 'translateY(0)' : 'translateY(10px)',
-          opacity: isHovered ? 1 : 0.9,
-          transition: 'transform 0.4s ease, opacity 0.4s ease',
+          zIndex: 3,
+          pointerEvents: 'none',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-          <span
-            style={{
-              fontSize: '11px',
-              letterSpacing: '2px',
-              color: 'rgba(201, 168, 76, 0.7)',
-              textTransform: 'uppercase',
-            }}
-          >
-            {material.en}
-          </span>
-          <div
-            style={{
-              flex: 1,
-              height: '1px',
-              background: 'linear-gradient(to right, rgba(201, 168, 76, 0.3), transparent)',
-            }}
-          />
-        </div>
+        <defs>
+          <linearGradient id="gfTactileRingGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#c9a84c" stopOpacity="0.4" />
+            <stop offset="50%" stopColor="#f0d080" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#c9a84c" stopOpacity="0.4" />
+          </linearGradient>
+          <radialGradient id="gfTactileCoreGlow">
+            <stop offset="0%" stopColor="#fff8e0" stopOpacity="1" />
+            <stop offset="30%" stopColor="#f0d080" stopOpacity="0.7" />
+            <stop offset="70%" stopColor="#c9a84c" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#c9a84c" stopOpacity="0" />
+          </radialGradient>
+        </defs>
 
-        <h3
+        {/* 外层轨道圆环 */}
+        <circle
+          cx="50"
+          cy="50"
+          r="32"
+          fill="none"
+          stroke="url(#gfTactileRingGrad)"
+          strokeWidth="0.5"
+          strokeDasharray="0.6 2"
+          vectorEffect="non-scaling-stroke"
+          style={{ opacity: 0.5 }}
+        />
+
+        {/* 内层圆环 */}
+        <circle
+          cx="50"
+          cy="50"
+          r="16"
+          fill="none"
+          stroke="url(#gfTactileRingGrad)"
+          strokeWidth="0.8"
+          vectorEffect="non-scaling-stroke"
+          style={{ opacity: 0.7 }}
+        />
+
+        {/* 中心核心发光点 */}
+        <circle
+          cx="50"
+          cy="50"
+          r="5"
+          fill="url(#gfTactileCoreGlow)"
+          vectorEffect="non-scaling-stroke"
+          style={{ opacity: 0.85, filter: 'blur(0.5px)' }}
+        />
+
+        {/* 中心文字 */}
+        <text
+          x="50"
+          y="49"
+          textAnchor="middle"
+          dominantBaseline="central"
           style={{
-            fontSize: '28px',
-            fontWeight: '500',
-            color: '#fffef8',
-            marginBottom: '8px',
-            textShadow: '0 2px 10px rgba(0,0,0,0.3)',
+            fontFamily: "'Noto Serif SC', serif",
+            fontSize: 'clamp(2px, 0.5vw, 3.5px)',
+            fill: '#f0d080',
+            opacity: 0.9,
+            letterSpacing: '0.15em',
           }}
         >
-          {material.name}
-        </h3>
-
-        <p
+          六材共生
+        </text>
+        <text
+          x="50"
+          y="53"
+          textAnchor="middle"
+          dominantBaseline="central"
           style={{
-            fontSize: '14px',
-            lineHeight: '1.6',
-            color: 'rgba(245, 240, 232, 0.85)',
-            marginBottom: '12px',
-            maxHeight: isHovered ? '120px' : '60px',
-            overflow: 'hidden',
-            transition: 'max-height 0.4s ease',
+            fontFamily: "'Cinzel', serif",
+            fontSize: 'clamp(1px, 0.25vw, 1.8px)',
+            fill: 'rgba(245,240,232,0.6)',
+            letterSpacing: '0.3em',
           }}
         >
-          {material.description}
-        </p>
+          SIX MATERIALS
+        </text>
 
-        <div style={{ display: 'flex', gap: '16px' }}>
+        {/* 连接线和流动光点 */}
+        {materials.map((mat, i) => (
+          <g key={`conn-${mat.id}`}>
+            <path
+              ref={(el) => { connRefs.current[i] = el; }}
+              d={`M 50 50 Q 50 50 ${mat.x} ${mat.y}`}
+              fill="none"
+              stroke="rgba(201,168,76,0.4)"
+              strokeWidth="0.12"
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+              style={{ opacity: 0 }}
+            />
+            <circle
+              ref={(el) => { connFlowRefs.current[i] = el; }}
+              cx="50"
+              cy="50"
+              r="0.6"
+              fill="#f0d080"
+              vectorEffect="non-scaling-stroke"
+              style={{ opacity: 0, filter: 'blur(0.3px)' }}
+            />
+          </g>
+        ))}
+
+        {/* 放射状刻度 */}
+        {Array.from({ length: 24 }).map((_, i) => {
+          const angle = (i * 15 * Math.PI) / 180;
+          const x1 = 50 + 18 * Math.cos(angle);
+          const y1 = 50 + 18 * Math.sin(angle);
+          const x2 = 50 + 21 * Math.cos(angle);
+          const y2 = 50 + 21 * Math.sin(angle);
+          return (
+            <line
+              key={`tick-${i}`}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              stroke="rgba(201,168,76,0.3)"
+              strokeWidth="0.2"
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          );
+        })}
+      </svg>
+
+      {/* 材质徽章圆环分布 */}
+      {materials.map((mat, i) => (
+        <div
+          key={mat.id}
+          ref={(el) => { iconRefs.current[i] = el; }}
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%) scale(0) rotate(0deg)',
+            opacity: 0,
+            zIndex: 4,
+            cursor: 'pointer',
+            willChange: 'transform, opacity, left, top',
+          }}
+          onClick={() => setShowPreview(mat)}
+          onMouseEnter={() => setSelectedId(mat.id)}
+          onMouseLeave={() => setSelectedId(null)}
+        >
+          {/* 圆形材质图片 */}
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '12px',
-              color: 'rgba(201, 168, 76, 0.8)',
+              position: 'relative',
+              width: `${badgeSize}px`,
+              height: `${badgeSize}px`,
+              borderRadius: '50%',
+              overflow: 'hidden',
+              border: '2px solid rgba(201,168,76,0.6)',
+              boxShadow: selectedId === mat.id
+                ? '0 0 30px rgba(201,168,76,0.7), 0 8px 24px rgba(0,0,0,0.4)'
+                : '0 4px 16px rgba(0,0,0,0.3)',
+              transition: 'box-shadow 0.3s ease, transform 0.3s ease',
+              transform: selectedId === mat.id ? 'scale(1.1)' : 'scale(1)',
             }}
           >
-            <span
+            <img
+              src={mat.image}
+              alt={mat.name}
               style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: material.temperature === '清凉' || material.temperature === '冰凉' ? '#60a5fa' : '#f97316',
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                filter: selectedId === mat.id ? 'brightness(1.1)' : 'brightness(0.85)',
+                transition: 'filter 0.3s ease',
               }}
             />
-            {material.temperature}
+            {/* 内部渐变叠加 */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15) 0%, transparent 50%)',
+                pointerEvents: 'none',
+              }}
+            />
           </div>
+
+          {/* 名称标签 */}
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '12px',
-              color: 'rgba(201, 168, 76, 0.8)',
+              position: 'absolute',
+              left: '50%',
+              top: '100%',
+              transform: 'translateX(-50%)',
+              marginTop: '10px',
+              textAlign: 'center',
+              whiteSpace: 'nowrap',
+              opacity: selectedId === mat.id ? 1 : 0.8,
+              transition: 'opacity 0.3s ease',
             }}
           >
-            <span
+            <div
               style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: material.weight === '厚重' || material.weight === '坚实' ? '#9ca3af' : '#4ade80',
+                fontFamily: "'Noto Serif SC', serif",
+                fontSize: initialVw <= 480 ? '11px' : initialVw <= 768 ? '13px' : '15px',
+                color: '#fffef8',
+                fontWeight: '500',
+                textShadow: '0 2px 8px rgba(0,0,0,0.6)',
               }}
-            />
-            {material.weight}
+            >
+              {mat.name}
+            </div>
+            <div
+              style={{
+                fontFamily: "'Cinzel', serif",
+                fontSize: initialVw <= 480 ? '8px' : initialVw <= 768 ? '9px' : '10px',
+                color: 'rgba(201,168,76,0.8)',
+                letterSpacing: '0.2em',
+                marginTop: '2px',
+              }}
+            >
+              {mat.en}
+            </div>
           </div>
         </div>
-      </div>
+      ))}
 
-      <button
-        type="button"
-        onClick={() => setShowPreview(true)}
+      {/* 左上章节标签 */}
+      <div
+        ref={(el) => { labelRefs.current[0] = el; }}
+        aria-hidden="true"
         style={{
           position: 'absolute',
-          top: '16px',
-          right: '16px',
-          width: '40px',
-          height: '40px',
-          borderRadius: '50%',
-          border: '1px solid rgba(245, 240, 232, 0.2)',
+          top: 'max(140px, 16vh)',
+          left: 'max(20px, 5vw)',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: isHovered ? 1 : 0.6,
-          transition: 'opacity 0.3s ease, transform 0.2s ease',
-          background: 'rgba(0,0,0,0.3)',
-          cursor: 'pointer',
-          animation: 'bouncePointer 1.5s ease-in-out infinite',
-          animationDelay: `${index * 0.2}s`,
+          alignItems: 'baseline',
+          gap: '10px',
+          zIndex: 6,
+          pointerEvents: 'none',
+          opacity: 0,
         }}
-        aria-label="放大查看材质"
       >
         <span
           style={{
-            fontSize: '18px',
-            color: 'rgba(245, 240, 232, 0.8)',
+            fontFamily: "'Cinzel', serif",
+            fontSize: 'clamp(10px, 1.4vw, 12px)',
+            letterSpacing: '0.4em',
+            color: 'var(--gf-gold)',
+            opacity: 0.8,
           }}
         >
-          ☝
+          CHAPTER
         </span>
-      </button>
+        <span
+          style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: 'clamp(26px, 3.5vw, 36px)',
+            color: 'var(--gf-gold)',
+            lineHeight: 1,
+          }}
+        >
+          09
+        </span>
+        <span
+          style={{
+            fontFamily: "'Noto Serif SC', serif",
+            fontSize: 'clamp(10px, 1.4vw, 13px)',
+            letterSpacing: '0.25em',
+            color: 'rgba(245,240,232,0.45)',
+            marginLeft: '6px',
+          }}
+        >
+          触觉体验
+        </span>
+      </div>
 
+      {/* 右上副标题 */}
+      <div
+        ref={(el) => { labelRefs.current[1] = el; }}
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: 'max(140px, 16vh)',
+          right: 'max(20px, 5vw)',
+          textAlign: 'right',
+          zIndex: 6,
+          pointerEvents: 'none',
+          opacity: 0,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: 'clamp(9px, 1.3vw, 12px)',
+            letterSpacing: '0.35em',
+            color: 'var(--gf-cold-accent)',
+            opacity: 0.8,
+          }}
+        >
+          TACTILE EXPERIENCE
+        </div>
+        <div
+          style={{
+            fontFamily: "'Noto Serif SC', serif",
+            fontSize: 'clamp(11px, 1.6vw, 15px)',
+            letterSpacing: '0.18em',
+            color: 'rgba(245,240,232,0.55)',
+            marginTop: '4px',
+          }}
+        >
+          建筑与身体对话
+        </div>
+      </div>
+
+      {/* 底部说明 */}
+      <div
+        ref={(el) => { labelRefs.current[2] = el; }}
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          bottom: 'max(30px, 6vh)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          textAlign: 'center',
+          zIndex: 6,
+          pointerEvents: 'none',
+          opacity: 0,
+          maxWidth: '500px',
+        }}
+      >
+        <p
+          style={{
+            fontSize: 'clamp(12px, 1.6vw, 14px)',
+            lineHeight: '1.8',
+            color: 'rgba(245,240,232,0.6)',
+            letterSpacing: '0.08em',
+          }}
+        >
+          点击材质感受纹理 · 六种材质承载广府文化记忆
+        </p>
+      </div>
+
+      {/* 全屏预览 */}
       {showPreview && (
         <div
           style={{
             position: 'fixed',
             inset: 0,
             zIndex: 1000,
-            background: '#000',
+            background: 'rgba(0,0,0,0.92)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            opacity: 0,
-            animation: 'fadeInUp 0.3s ease forwards',
+            animation: 'fadeIn 0.3s ease forwards',
             cursor: 'pointer',
           }}
-          onClick={() => setShowPreview(false)}
+          onClick={() => setShowPreview(null)}
         >
-          <img
-            src={material.image}
-            alt={material.name}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowPreview(false);
-            }}
-          />
+          <div style={{ textAlign: 'center' }}>
+            <div
+              style={{
+                width: 'min(70vw, 500px)',
+                height: 'min(70vw, 500px)',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                border: '3px solid rgba(201,168,76,0.6)',
+                boxShadow: '0 0 60px rgba(201,168,76,0.4)',
+                margin: '0 auto',
+                animation: 'zoomIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+              }}
+            >
+              <img
+                src={showPreview.image}
+                alt={showPreview.name}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+            </div>
+            <h3
+              style={{
+                fontSize: 'clamp(28px, 5vw, 48px)',
+                color: '#fffef8',
+                marginTop: '32px',
+                marginBottom: '8px',
+                fontWeight: '500',
+                letterSpacing: '0.2em',
+                animation: 'fadeInUp 0.5s ease 0.2s forwards',
+                opacity: 0,
+              }}
+            >
+              {showPreview.name}
+            </h3>
+            <p
+              style={{
+                fontSize: 'clamp(12px, 1.8vw, 16px)',
+                color: 'rgba(245,240,232,0.7)',
+                letterSpacing: '0.1em',
+                marginBottom: '24px',
+                animation: 'fadeInUp 0.5s ease 0.3s forwards',
+                opacity: 0,
+              }}
+            >
+              {showPreview.en}
+            </p>
+            <p
+              style={{
+                fontSize: 'clamp(13px, 1.8vw, 16px)',
+                color: 'rgba(245,240,232,0.8)',
+                maxWidth: '400px',
+                margin: '0 auto 24px',
+                lineHeight: '1.8',
+                animation: 'fadeInUp 0.5s ease 0.4s forwards',
+                opacity: 0,
+              }}
+            >
+              {showPreview.description}
+            </p>
+            <div
+              style={{
+                display: 'flex',
+                gap: '24px',
+                justifyContent: 'center',
+                animation: 'fadeInUp 0.5s ease 0.5s forwards',
+                opacity: 0,
+              }}
+            >
+              <span style={{ color: 'rgba(201,168,76,0.8)', fontSize: '14px' }}>
+                温度：{showPreview.temperature}
+              </span>
+              <span style={{ color: 'rgba(201,168,76,0.8)', fontSize: '14px' }}>
+                质感：{showPreview.weight}
+              </span>
+            </div>
+          </div>
         </div>
       )}
-    </div>
-  );
-}
-
-export default function TactileExperienceSection() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
-
-  useChapterReveal(sectionRef, innerRef);
-
-  return (
-    <section
-      ref={sectionRef}
-      className="gf-chapter"
-      style={{
-        position: 'relative',
-        minHeight: '100vh',
-        width: '100%',
-        background: 'linear-gradient(to bottom, #0d0b12 0%, #1a1622 50%, #0d0b12 100%)',
-        padding: '60px 40px',
-        boxSizing: 'border-box',
-      }}
-    >
-      <div
-        ref={innerRef}
-        className="gf-chapter-reveal-wrap"
-        style={{
-          position: 'relative',
-          maxWidth: '1400px',
-          margin: '0 auto',
-        }}
-      >
-        <div
-          className="gf-tactile-header"
-          style={{
-            textAlign: 'center',
-            marginBottom: '80px',
-            opacity: 0,
-            animation: 'fadeInUp 0.8s ease 0.2s forwards',
-          }}
-        >
-          <span
-            className="gf-tactile-subtitle"
-            style={{
-              fontSize: '12px',
-              letterSpacing: '4px',
-              color: 'rgba(201, 168, 76, 0.6)',
-              textTransform: 'uppercase',
-            }}
-          >
-            TACTILE EXPERIENCE
-          </span>
-          <h2
-            className="gf-tactile-title"
-            style={{
-              fontSize: 'clamp(32px, 5vw, 56px)',
-              fontWeight: '300',
-              color: '#fffef8',
-              marginTop: '16px',
-              marginBottom: '24px',
-              letterSpacing: '2px',
-            }}
-          >
-            建筑与身体对话
-          </h2>
-          <p
-            className="gf-tactile-desc"
-            style={{
-              fontSize: 'clamp(14px, 2vw, 18px)',
-              lineHeight: '1.8',
-              color: 'rgba(245, 240, 232, 0.65)',
-              maxWidth: '600px',
-              margin: '0 auto',
-            }}
-          >
-            通过不同的材质，不同的触觉内容，让触觉看得见。每一种材质都承载着广府文化的记忆，
-            在指尖与建筑的对话中，感受时光的温度。
-          </p>
-        </div>
-
-        <div
-          className="gf-tactile-grid"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '24px',
-          }}
-        >
-          {MATERIALS.map((material, index) => (
-            <MaterialCard key={material.id} material={material} index={index} />
-          ))}
-        </div>
-      </div>
 
       <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
         @keyframes fadeInUp {
           from {
             opacity: 0;
-            transform: translateY(30px);
+            transform: translateY(20px);
           }
           to {
             opacity: 1;
             transform: translateY(0);
           }
         }
-
-        @keyframes particleFloat {
-          0% {
-            transform: translate(-50%, -50%) scale(0);
+        @keyframes zoomIn {
+          from {
+            transform: scale(0.5);
             opacity: 0;
           }
-          20% {
+          to {
+            transform: scale(1);
             opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
           }
-          100% {
-            transform: translate(-50%, -150%) scale(0);
-            opacity: 0;
-          }
-        }
-
-        @keyframes bouncePointer {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-8px);
-          }
-        }
-
-        .gf-tactile-card {
-          perspective: 1000px;
-        }
-
-        .gf-tactile-card::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%);
-          pointer-events: none;
-          z-index: 1;
         }
       `}</style>
     </section>
