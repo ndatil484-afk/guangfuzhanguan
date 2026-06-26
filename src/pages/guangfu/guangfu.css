@@ -732,7 +732,7 @@
     flex-direction: column;
     align-items: center;
     gap: 24px;
-    padding: 200px 16px 100px;
+    padding: 80px 16px 100px;
     overflow-y: visible;
     height: auto;
     transform: none;
@@ -748,7 +748,7 @@
     transform: none !important;
   }
   .gf-team-figure .gf-team-portrait-img {
-    object-position: center 68%;
+    object-position: center 15%;
   }
   .gf-team-figure .gf-team-portrait-wrap {
     -webkit-mask-image: linear-gradient(
@@ -775,6 +775,16 @@
   .gf-team-ground {
     display: none;
   }
+  /* 将部门文字移到人物顶部 */
+  .gf-team-typing {
+    top: 20px !important;
+    bottom: auto !important;
+    font-size: clamp(14px, 4vw, 18px) !important;
+  }
+  .gf-team-typing-label {
+    top: calc(20px + clamp(22px, 5vw, 28px)) !important;
+    bottom: auto !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -790,7 +800,7 @@
     height: clamp(260px, 62vw, 340px);
   }
   .gf-team-figure .gf-team-portrait-img {
-    object-position: center 65%;
+    object-position: center 20%;
   }
   .gf-team-caption.is-left,
   .gf-team-caption.is-right,
@@ -812,7 +822,7 @@
     height: clamp(240px, 68vw, 320px);
   }
   .gf-team-figure .gf-team-portrait-img {
-    object-position: center 62%;
+    object-position: center 25%;
   }
 }
 

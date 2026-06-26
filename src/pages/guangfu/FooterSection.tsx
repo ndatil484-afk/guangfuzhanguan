@@ -30,8 +30,8 @@ export default function FooterSection() {
   return (
     <section
       ref={sectionRef}
-      id="chapter-11"
-      data-chapter="11"
+      id="chapter-10"
+      data-chapter="10"
       data-title="致谢"
       className="gf-chapter"
       style={{

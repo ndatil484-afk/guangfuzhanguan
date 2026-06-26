@@ -344,8 +344,8 @@ export default function TeamSection() {
   return (
     <section
       ref={sectionRef}
-      id="chapter-10"
-      data-chapter="10"
+      id="chapter-09"
+      data-chapter="09"
       data-title="团队介绍"
       className="gf-chapter"
       style={{ position: 'relative', minHeight: '220vh', width: '100%', background: 'transparent' }}
@@ -398,6 +398,7 @@ export default function TeamSection() {
               在地面阴影(bottom 10vh)之下，故用 bottom 定位避开脚部/衣摆。 */}
           <div
             ref={typingRef}
+            className="gf-team-typing"
             style={{
               position: 'absolute',
               bottom: 'max(34px, 4vh)',
@@ -414,6 +415,7 @@ export default function TeamSection() {
           />
           <div
             aria-hidden="true"
+            className="gf-team-typing-label"
             style={{
               position: 'absolute',
               bottom: 'calc(max(34px, 4vh) + clamp(30px, 3.4vh, 44px))',

@@ -1,478 +1,821 @@
-import { useEffect, useRef } from 'react';
-import { useScrubProgress } from '@/lib/useScrubProgress';
-import { useChapterReveal } from '@/lib/useChapterReveal';
+import { useEffect, useRef, useState } from 'react';
 import GfAmbientParticles from '@/components/GfAmbientParticles';
+import brickImg from '@/assets/tactile/brick.jpg';
+import woodImg from '@/assets/tactile/wood.jpg';
+import ceramicImg from '@/assets/tactile/ceramic.jpg';
+import silkImg from '@/assets/tactile/silk.jpg';
+import stoneImg from '@/assets/tactile/stone.jpg';
+import paperImg from '@/assets/tactile/paper.jpg';
 
-/**
- * Chapter 06 — 材料 (Materials)
- *
- * 静态内容章节（140vh）：以广府文化展馆的六种核心材质为线索，呈现每种材
- * 料的语义与展馆应用。中央三列布局承载完整内容（标题 + 副标 + 六张材质
- * 卡片），整体在网页视窗正中显示。
- *
- * 动画驱动（基于滚动 scrub，与全站一致；键盘方向键跳转到本章节时，会自
- * 然完成入场并在停留期稳定显示，向下离开时再完成出场）：
- *   0%  – 18% : 入场 —— 标题区与卡片群自下淡入 + 上浮归位（错峰）
- *  18%  – 82% : 稳定期 —— 完整内容居中可读
- *  82% – 100% : 出场 —— 内容上移 + 渐隐，让位下一章
- */
-
-type Material = {
-  id: string;
-  cn: string;
-  en: string;
-  pinyin: string;
-  hue: [number, number, number];
-  motif: string;
-  desc: string;
-  usage: string;
-};
-
-const MATERIALS: Material[] = [
+const MATERIALS = [
   {
-    id: 'm1',
-    cn: '铜',
-    en: 'BRONZE',
-    pinyin: 'Tóng',
-    hue: [201, 138, 60],
-    motif: '金石之音',
-    desc: '岭南铜器承秦汉遗韵，敲之有金石清响，是祠堂礼器与门钉的肌理之源。',
-    usage: '入口序厅的青铜浮雕墙',
+    id: 'brick',
+    name: '青砖',
+    en: 'GREEN BRICK',
+    description: '粗糙而温暖的触感，仿佛能感受到时光的沉淀。',
+    image: brickImg,
+    color: [74, 85, 104],
+    temperature: '微凉',
+    weight: '厚重',
   },
   {
-    id: 'm2',
-    cn: '木',
-    en: 'TIMBER',
-    pinyin: 'Mù',
-    hue: [150, 100, 56],
-    motif: '榫卯之间',
-    desc: '酸枝、坤甸与杉木构筑骑楼骨架，榫卯咬合无声，留存时间打磨的温度。',
-    usage: '展廊格栅与展柜骨架',
+    id: 'wood',
+    name: '酸枝木',
+    en: 'ROSEWOOD',
+    description: '细腻温润的木纹，散发着淡淡的木香。',
+    image: woodImg,
+    color: [92, 61, 46],
+    temperature: '温润',
+    weight: '坚实',
   },
   {
-    id: 'm3',
-    cn: '琉璃',
-    en: 'GLAZE',
-    pinyin: 'Liúlí',
-    hue: [120, 180, 200],
-    motif: '光色穿廊',
-    desc: '广府琉璃以"岭南三彩"为底，光穿过满洲窗，于地面织出彩色光影。',
-    usage: '中庭天窗与满洲窗复刻',
+    id: 'ceramic',
+    name: '广彩瓷',
+    en: 'GUANGCAI',
+    description: '光滑如玉的釉面，细腻而清凉。',
+    image: ceramicImg,
+    color: [200, 180, 150],
+    temperature: '清凉',
+    weight: '轻盈',
   },
   {
-    id: 'm4',
-    cn: '石',
-    en: 'STONE',
-    pinyin: 'Shí',
-    hue: [180, 175, 165],
-    motif: '青砖旧痕',
-    desc: '青麻石与蚝壳墙是岭南的呼吸肌理，雨痕苔迹皆为时间的笔触。',
-    usage: '地铺与场景复原墙',
+    id: 'silk',
+    name: '香云纱',
+    en: 'GAMUZA SILK',
+    description: '柔软而有光泽的触感，丝滑如流水。',
+    image: silkImg,
+    color: [139, 90, 43],
+    temperature: '凉爽',
+    weight: '轻柔',
   },
   {
-    id: 'm5',
-    cn: '绸',
-    en: 'SILK',
-    pinyin: 'Chóu',
-    hue: [200, 120, 130],
-    motif: '缱绻流光',
-    desc: '香云纱以薯莨染就，泥金暗纹游走于丝绸之间，是广绣的呼吸与肌理。',
-    usage: '展品柔帘与互动投影幕',
+    id: 'stone',
+    name: '麻石',
+    en: 'GRANITE',
+    description: '坚硬而粗粝的表面，蕴含着山的沉稳。',
+    image: stoneImg,
+    color: [107, 114, 128],
+    temperature: '冰凉',
+    weight: '厚重',
   },
   {
-    id: 'm6',
-    cn: '漆',
-    en: 'LACQUER',
-    pinyin: 'Qī',
-    hue: [120, 40, 40],
-    motif: '朱漆描金',
-    desc: '广式描金漆器朱底金线，繁而不乱，将木雕的呼吸封存于釉色之下。',
-    usage: '文物展龛与品牌铭牌',
+    id: 'paper',
+    name: '宣纸',
+    en: 'RICE PAPER',
+    description: '轻薄而坚韧的触感，纤维交织的纹理。',
+    image: paperImg,
+    color: [230, 220, 180],
+    temperature: '温暖',
+    weight: '轻薄',
   },
 ];
 
-function seg(p: number, s: number, e: number) {
-  if (e <= s) return p <= s ? 0 : 1;
-  return Math.max(0, Math.min(1, (p - s) / (e - s)));
-}
-function clamp01(v: number) {
-  return Math.max(0, Math.min(1, v));
-}
-function easeOutCubic(t: number) {
-  return 1 - Math.pow(1 - t, 3);
-}
+const CENTER_X = 50;
+const CENTER_Y = 50;
+const ASPECT = 16 / 9;
+
+const getOrbitRadius = (vw: number): number => {
+  if (vw <= 480) return 28;
+  if (vw <= 768) return 30;
+  return 32;
+};
+
+const getMaterialPositions = (vw: number) => {
+  const r = getOrbitRadius(vw);
+  const materials = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
+    const x = CENTER_X + (Math.cos(angle) * r) / ASPECT;
+    const y = CENTER_Y + Math.sin(angle) * r;
+    materials.push({
+      ...MATERIALS[i],
+      x,
+      y,
+      angle,
+      radius: r,
+    });
+  }
+  return materials;
+};
+
+const easeOutBack = (t: number): number => {
+  const c1 = 1.4;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+};
+
+const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
+
+const getBadgeSize = (vw: number): number => {
+  if (vw <= 480) return 56;
+  if (vw <= 768) return 72;
+  return 88;
+};
 
 export default function MaterialsSection() {
   const sectionRef = useRef<HTMLElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
-  const stageRef = useRef<HTMLDivElement>(null);
-  const headRef = useRef<HTMLDivElement>(null);
-  const cardRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const progressRef = useRef(0);
+  const teleportRef = useRef(false);
+  const viewportRef = useRef({ vw: typeof window !== 'undefined' ? window.innerWidth : 1280 });
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState<typeof MATERIALS[0] | null>(null);
 
-  const { progress } = useScrubProgress(sectionRef, { range: 'full', lead: 1, initial: 0.1 });
+  const iconRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const labelRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const connRefs = useRef<Array<SVGPathElement | null>>([]);
+  const connFlowRefs = useRef<Array<SVGCircleElement | null>>([]);
+  const labelPositionRefs = useRef<Array<{ x: number; y: number }>>([]);
 
-  useChapterReveal(sectionRef, innerRef);
+  const initialVw = typeof window !== 'undefined' ? window.innerWidth : 1280;
+  const materials = getMaterialPositions(initialVw);
 
-  // 入场 / 出场以 section 自身 bounding rect 为基准（与 useChapterReveal 同源），
-  // 这样键盘跳转 / 直接锚定到本章节时，停留期 opacity 稳定为 1，内容完整呈现；
-  // scrub progress 仅用于背景与微尘的衰减。
+  const apply = (p: number) => {
+    p = clamp01(p);
+    const t = easeOutBack(p);
+    const op = clamp01(p * 1.15);
+
+    materials.forEach((mat, i) => {
+      const el = iconRefs.current[i];
+      if (!el) return;
+
+      const radius = mat.radius * t;
+      const angle = mat.angle + (1 - p) * 0.8;
+      const dx = (Math.cos(angle) * radius) / ASPECT;
+      const dy = Math.sin(angle) * radius;
+      const x = CENTER_X + dx;
+      const y = CENTER_Y + dy;
+
+      el.style.left = `${x}%`;
+      el.style.top = `${y}%`;
+      // 只对图片容器应用旋转
+      el.style.transform = `translate(-50%, -50%) scale(${Math.max(0, t)})`;
+      el.style.opacity = `${op}`;
+
+      // 存储文字标签的位置（不旋转）
+      labelPositionRefs.current[i] = { x, y };
+    });
+
+    connRefs.current.forEach((conn, i) => {
+      if (!conn) return;
+      const mat = materials[i];
+      const radius = mat.radius * t;
+      const angle = mat.angle + (1 - p) * 0.8;
+      const ex = CENTER_X + (Math.cos(angle) * radius) / ASPECT;
+      const ey = CENTER_Y + Math.sin(angle) * radius;
+      const midX = (CENTER_X + ex) / 2;
+      const midY = (CENTER_Y + ey) / 2;
+      conn.setAttribute('d', `M ${CENTER_X} ${CENTER_Y} Q ${midX} ${midY} ${ex} ${ey}`);
+      conn.style.opacity = `${clamp01(p * 1.1) * 0.6}`;
+
+      const flow = connFlowRefs.current[i];
+      if (flow) {
+        const period = 3000;
+        const time = performance.now();
+        const tau = ((time % period) / period) * 2;
+        const ft = tau <= 1 ? tau : 2 - tau;
+        const u = 1 - ft;
+        const fx = u * u * CENTER_X + 2 * u * ft * midX + ft * ft * ex;
+        const fy = u * u * CENTER_Y + 2 * u * ft * midY + ft * ft * ey;
+        flow.setAttribute('cx', `${fx}`);
+        flow.setAttribute('cy', `${fy}`);
+        flow.setAttribute('r', `${0.8 * (0.7 + ft * 0.3)}`);
+        flow.style.opacity = `${clamp01(p * 1.1) * (0.85 * (1 - ft * 0.5))}`;
+      }
+    });
+
+    // 更新材质名称标签的位置（不旋转）
+    materials.forEach((_, i) => {
+      const lab = labelRefs.current[i];
+      if (!lab) return;
+      const pos = labelPositionRefs.current[i];
+      if (!pos) return;
+      lab.style.left = `${pos.x}%`;
+      lab.style.top = `${pos.y}%`;
+      lab.style.opacity = `${clamp01(p * 1.15)}`;
+    });
+
+    // 更新章节标签的透明度
+    for (let i = 6; i < labelRefs.current.length; i++) {
+      const lab = labelRefs.current[i];
+      if (lab) lab.style.opacity = `${clamp01(p * 1.2)}`;
+    }
+  };
+
   useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
     let raf = 0;
-    const apply = () => {
+    const tick = () => {
       raf = 0;
-      const section = sectionRef.current;
-      if (!section) return;
       const vh = window.innerHeight;
+      const vw = window.innerWidth;
+      viewportRef.current.vw = vw;
       const rect = section.getBoundingClientRect();
+      const secCenter = rect.top + rect.height / 2;
+      const vpCenter = vh / 2;
+      const dist = Math.abs(secCenter - vpCenter);
+      const target = clamp01(1 - dist / vh);
 
-      // 进入：section 顶部从 vh 上升到 vh*0.55 —— 钉住即完成入场
-      const enter = clamp01((vh - rect.top) / (vh - vh * 0.55));
-      // 离开：section 底部从 vh 滑到 0
-      const exit = clamp01((vh - rect.bottom) / vh);
-
-      const enterE = easeOutCubic(enter);
-      const exitE = easeOutCubic(exit);
-
-      // 舞台：整体上浮 + 透明度
-      if (stageRef.current) {
-        const lift = (1 - enterE) * 48 + exitE * 64;
-        stageRef.current.style.transform = `translateY(${(-lift).toFixed(2)}px)`;
-        stageRef.current.style.opacity = String(enterE * (1 - exitE));
+      if (teleportRef.current) {
+        progressRef.current = target;
+      } else {
+        const cur = progressRef.current;
+        const next = cur + (target - cur) * 0.18;
+        progressRef.current = Math.abs(target - next) < 0.001 ? target : next;
       }
-      // 标题：略晚入场 / 略早出场
-      if (headRef.current) {
-        const hIn = easeOutCubic(clamp01((enter - 0.1) / 0.9));
-        const hOut = easeOutCubic(clamp01((exit - 0) / 0.8));
-        headRef.current.style.transform = `translateY(${((1 - hIn) * 28 - hOut * 28).toFixed(2)}px)`;
-        headRef.current.style.opacity = String(hIn * (1 - hOut));
+      apply(progressRef.current);
+
+      const settled = Math.abs(target - progressRef.current) < 0.001;
+      const visible = progressRef.current > 0.01;
+      const needMore = !settled || visible || (teleportRef.current && target > 0.001);
+      if (needMore) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        raf = 0;
       }
-      // 卡片错峰入场
-      cardRefs.current.forEach((el, i) => {
-        if (!el) return;
-        const start = 0.08 + (i / 6) * 0.5;
-        const localIn = easeOutCubic(clamp01((enter - start) / 0.4));
-        const localOut = easeOutCubic(clamp01((exit - (i / 6) * 0.1) / 0.7));
-        const lift = (1 - localIn) * 40 + localOut * 52;
-        el.style.transform = `translateY(${(-lift).toFixed(2)}px) scale(${(0.94 + localIn * 0.06).toFixed(3)})`;
-        el.style.opacity = String(localIn * (1 - localOut));
-      });
     };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(apply);
+
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(tick);
     };
-    apply();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
+
+    schedule();
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      const isNav =
+        e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'ArrowLeft' ||
+        e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === 'PageUp' ||
+        e.key === 'Home' || e.key === 'End';
+      if (!isNav) return;
+      teleportRef.current = true;
+      schedule();
+    };
+    const onWheel = () => {
+      if (teleportRef.current) {
+        teleportRef.current = false;
+        schedule();
+      }
+    };
+
+    window.addEventListener('keydown', onKey, { passive: true });
+    window.addEventListener('wheel', onWheel, { passive: true });
+
     return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('wheel', onWheel);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [sectionRef]);
+  }, []);
+
+  const badgeSize = getBadgeSize(initialVw);
 
   return (
     <section
       ref={sectionRef}
       id="chapter-06"
-      data-chapter="06"
       data-title="材料"
       className="gf-chapter"
-      style={{ position: 'relative', height: '140vh', width: '100%', background: 'transparent' }}
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100vh',
+        background: 'transparent',
+        overflow: 'hidden',
+      }}
     >
+      {/* 背景光效 */}
       <div
-        ref={innerRef}
-        className="gf-chapter-reveal-wrap"
-        style={{ position: 'absolute', inset: 0, willChange: 'opacity, transform' }}
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+          background:
+            'radial-gradient(ellipse 55% 50% at 50% 46%, rgba(201,168,76,0.08) 0%, rgba(201,168,76,0.03) 35%, rgba(10,13,20,0) 65%)',
+        }}
+      />
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+          background:
+            'radial-gradient(ellipse 90% 90% at 50% 50%, rgba(10,13,20,0) 55%, rgba(6,8,12,0.55) 100%)',
+        }}
+      />
+
+      {/* 金尘粒子 */}
+      <GfAmbientParticles
+        count={80}
+        opacity={0.42}
+        minSize={0.4}
+        maxSize={1.6}
+        color={[201, 168, 76]}
+        driftX={20}
+        driftY={28}
+        style={{ zIndex: 1 }}
+      />
+
+      {/* 圆环系统 SVG */}
+      <svg
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          zIndex: 3,
+          pointerEvents: 'none',
+        }}
+      >
+        <defs>
+          <linearGradient id="gfMaterialsRingGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#c9a84c" stopOpacity="0.4" />
+            <stop offset="50%" stopColor="#f0d080" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#c9a84c" stopOpacity="0.4" />
+          </linearGradient>
+          <radialGradient id="gfMaterialsCoreGlow">
+            <stop offset="0%" stopColor="#fff8e0" stopOpacity="1" />
+            <stop offset="30%" stopColor="#f0d080" stopOpacity="0.7" />
+            <stop offset="70%" stopColor="#c9a84c" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#c9a84c" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+
+        {/* 外层轨道圆环 */}
+        <circle
+          cx="50"
+          cy="50"
+          r="32"
+          fill="none"
+          stroke="url(#gfMaterialsRingGrad)"
+          strokeWidth="0.5"
+          strokeDasharray="0.6 2"
+          vectorEffect="non-scaling-stroke"
+          style={{ opacity: 0.5 }}
+        />
+
+        {/* 内层圆环 */}
+        <circle
+          cx="50"
+          cy="50"
+          r="16"
+          fill="none"
+          stroke="url(#gfMaterialsRingGrad)"
+          strokeWidth="0.8"
+          vectorEffect="non-scaling-stroke"
+          style={{ opacity: 0.7 }}
+        />
+
+        {/* 中心核心发光点 */}
+        <circle
+          cx="50"
+          cy="50"
+          r="5"
+          fill="url(#gfMaterialsCoreGlow)"
+          vectorEffect="non-scaling-stroke"
+          style={{ opacity: 0.85, filter: 'blur(0.5px)' }}
+        />
+
+        {/* 中心文字 */}
+        <text
+          x="50"
+          y="49"
+          textAnchor="middle"
+          dominantBaseline="central"
+          style={{
+            fontFamily: "'Noto Serif SC', serif",
+            fontSize: 'clamp(2px, 0.5vw, 3.5px)',
+            fill: '#f0d080',
+            opacity: 0.9,
+            letterSpacing: '0.15em',
+          }}
+        >
+          六材共生
+        </text>
+        <text
+          x="50"
+          y="53"
+          textAnchor="middle"
+          dominantBaseline="central"
+          style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: 'clamp(1px, 0.25vw, 1.8px)',
+            fill: 'rgba(245,240,232,0.6)',
+            letterSpacing: '0.3em',
+          }}
+        >
+          SIX MATERIALS
+        </text>
+
+        {/* 连接线和流动光点 */}
+        {materials.map((mat, i) => (
+          <g key={`conn-${mat.id}`}>
+            <path
+              ref={(el) => { connRefs.current[i] = el; }}
+              d={`M 50 50 Q 50 50 ${mat.x} ${mat.y}`}
+              fill="none"
+              stroke="rgba(201,168,76,0.4)"
+              strokeWidth="0.12"
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+              style={{ opacity: 0 }}
+            />
+            <circle
+              ref={(el) => { connFlowRefs.current[i] = el; }}
+              cx="50"
+              cy="50"
+              r="0.6"
+              fill="#f0d080"
+              vectorEffect="non-scaling-stroke"
+              style={{ opacity: 0, filter: 'blur(0.3px)' }}
+            />
+          </g>
+        ))}
+
+        {/* 放射状刻度 */}
+        {Array.from({ length: 24 }).map((_, i) => {
+          const angle = (i * 15 * Math.PI) / 180;
+          const x1 = 50 + 18 * Math.cos(angle);
+          const y1 = 50 + 18 * Math.sin(angle);
+          const x2 = 50 + 21 * Math.cos(angle);
+          const y2 = 50 + 21 * Math.sin(angle);
+          return (
+            <line
+              key={`tick-${i}`}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              stroke="rgba(201,168,76,0.3)"
+              strokeWidth="0.2"
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          );
+        })}
+      </svg>
+
+      {/* 材质徽章圆环分布 - 图片部分 */}
+      {materials.map((mat, i) => (
+        <div
+          key={`icon-${mat.id}`}
+          ref={(el) => { iconRefs.current[i] = el; }}
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%) scale(0)',
+            opacity: 0,
+            zIndex: 4,
+            cursor: 'pointer',
+            willChange: 'transform, opacity, left, top',
+            // 3D变换隔离，只影响这个容器内的图片
+            transformStyle: 'preserve-3d',
+          }}
+          onClick={() => setShowPreview(mat)}
+          onMouseEnter={() => setSelectedId(mat.id)}
+          onMouseLeave={() => setSelectedId(null)}
+        >
+          {/* 圆形材质图片 */}
+          <div
+            style={{
+              position: 'relative',
+              width: `${badgeSize}px`,
+              height: `${badgeSize}px`,
+              borderRadius: '50%',
+              overflow: 'hidden',
+              border: '2px solid rgba(201,168,76,0.6)',
+              boxShadow: selectedId === mat.id
+                ? '0 0 30px rgba(201,168,76,0.7), 0 8px 24px rgba(0,0,0,0.4)'
+                : '0 4px 16px rgba(0,0,0,0.3)',
+              transition: 'box-shadow 0.3s ease, transform 0.3s ease',
+              transform: selectedId === mat.id ? 'scale(1.1)' : 'scale(1)',
+            }}
+          >
+            <img
+              src={mat.image}
+              alt={mat.name}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'center 25%',
+                filter: selectedId === mat.id ? 'brightness(1.1)' : 'brightness(0.85)',
+                transition: 'filter 0.3s ease',
+              }}
+            />
+            {/* 内部渐变叠加 */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15) 0%, transparent 50%)',
+                pointerEvents: 'none',
+              }}
+            />
+          </div>
+        </div>
+      ))}
+
+      {/* 材质名称标签 - 独立于旋转容器，始终正立显示 */}
+      {materials.map((mat, i) => (
+        <div
+          key={`label-${mat.id}`}
+          ref={(el) => { labelRefs.current[i] = el; }}
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, 0)',
+            textAlign: 'center',
+            whiteSpace: 'nowrap',
+            opacity: 0,
+            zIndex: 5,
+            cursor: 'pointer',
+            willChange: 'transform, opacity, left, top',
+            pointerEvents: 'none',
+            // 确保文字不被父元素旋转影响
+            marginTop: `${badgeSize / 2 + 12}px`,
+          }}
+          onClick={() => setShowPreview(mat)}
+        >
+          <div
+            style={{
+              fontFamily: "'Noto Serif SC', serif",
+              fontSize: initialVw <= 480 ? '11px' : initialVw <= 768 ? '13px' : '15px',
+              color: '#fffef8',
+              fontWeight: '500',
+              textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+            }}
+          >
+            {mat.name}
+          </div>
+          <div
+            style={{
+              fontFamily: "'Cinzel', serif",
+              fontSize: initialVw <= 480 ? '8px' : initialVw <= 768 ? '9px' : '10px',
+              color: 'rgba(201,168,76,0.8)',
+              letterSpacing: '0.2em',
+              marginTop: '2px',
+            }}
+          >
+            {mat.en}
+          </div>
+        </div>
+      ))}
+
+      {/* 左上章节标签 */}
+      <div
+        ref={(el) => { labelRefs.current[6] = el; }}
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: 'max(140px, 16vh)',
+          left: 'max(20px, 5vw)',
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: '10px',
+          zIndex: 6,
+          pointerEvents: 'none',
+          opacity: 0,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: 'clamp(10px, 1.4vw, 12px)',
+            letterSpacing: '0.4em',
+            color: 'var(--gf-gold)',
+            opacity: 0.8,
+          }}
+        >
+          CHAPTER
+        </span>
+        <span
+          style={{
+            fontFamily: "'Cinzel', serif",
+            fontSize: 'clamp(26px, 3.5vw, 36px)',
+            color: 'var(--gf-gold)',
+            lineHeight: 1,
+          }}
+        >
+          06
+        </span>
+        <span
+          style={{
+            fontFamily: "'Noto Serif SC', serif",
+            fontSize: 'clamp(10px, 1.4vw, 13px)',
+            letterSpacing: '0.25em',
+            color: 'rgba(245,240,232,0.45)',
+            marginLeft: '6px',
+          }}
+        >
+          材料
+        </span>
+      </div>
+
+      {/* 右上副标题 */}
+      <div
+        ref={(el) => { labelRefs.current[7] = el; }}
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: 'max(140px, 16vh)',
+          right: 'max(20px, 5vw)',
+          textAlign: 'right',
+          zIndex: 6,
+          pointerEvents: 'none',
+          opacity: 0,
+        }}
       >
         <div
-          className="gf-chapter-inner"
           style={{
-            position: 'sticky',
-            top: 0,
-            height: '100vh',
-            width: '100%',
-            overflow: 'hidden',
+            fontFamily: "'Cinzel', serif",
+            fontSize: 'clamp(9px, 1.3vw, 12px)',
+            letterSpacing: '0.35em',
+            color: 'var(--gf-cold-accent)',
+            opacity: 0.8,
+          }}
+        >
+          MATERIALS
+        </div>
+        <div
+          style={{
+            fontFamily: "'Noto Serif SC', serif",
+            fontSize: 'clamp(11px, 1.6vw, 15px)',
+            letterSpacing: '0.18em',
+            color: 'rgba(245,240,232,0.55)',
+            marginTop: '4px',
+          }}
+        >
+          六材共生
+        </div>
+      </div>
+
+      {/* 底部说明 */}
+      <div
+        ref={(el) => { labelRefs.current[8] = el; }}
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          bottom: 'max(30px, 6vh)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          textAlign: 'center',
+          zIndex: 6,
+          pointerEvents: 'none',
+          opacity: 0,
+          maxWidth: '500px',
+        }}
+      >
+        <p
+          style={{
+            fontSize: 'clamp(12px, 1.6vw, 14px)',
+            lineHeight: '1.8',
+            color: 'rgba(245,240,232,0.6)',
+            letterSpacing: '0.08em',
+          }}
+        >
+          点击材质感受纹理 · 六种材质承载广府文化记忆
+        </p>
+      </div>
+
+      {/* 全屏预览 */}
+      {showPreview && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            background: 'rgba(0,0,0,0.92)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            animation: 'fadeIn 0.3s ease forwards',
+            cursor: 'pointer',
           }}
+          onClick={() => setShowPreview(null)}
         >
-          {/* 背景暖光 */}
-          <div
-            aria-hidden="true"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background:
-                'radial-gradient(ellipse at center, rgba(216, 200, 168, 0.32) 0%, transparent 68%)',
-            }}
-          />
-
-          {/* 漂浮微尘 */}
-          <GfAmbientParticles
-            count={36}
-            opacity={0.28 * (1 - seg(progress, 0.85, 1))}
-            minSize={0.4}
-            maxSize={1.3}
-            color={[180, 150, 100]}
-            driftX={10}
-            driftY={12}
-            style={{ zIndex: 5 }}
-          />
-
-          {/* 章节标签 */}
-          <div
-            aria-hidden="true"
-            style={{
-              position: 'absolute',
-              top: 'max(80px, 12vh)',
-              left: 'max(28px, 4vw)',
-              display: 'flex',
-              alignItems: 'baseline',
-              gap: '10px',
-              zIndex: 40,
-              pointerEvents: 'none',
-              mixBlendMode: 'difference',
-            }}
-          >
-            <span style={{ fontFamily: "'Cinzel', serif", fontSize: '11px', letterSpacing: '0.4em', color: '#7a5a2a', opacity: 0.85 }}>
-              CHAPTER
-            </span>
-            <span style={{ fontFamily: "'Cinzel', serif", fontSize: '32px', color: '#7a5a2a', lineHeight: 1 }}>06</span>
-            <span style={{ fontFamily: "'Noto Serif SC', serif", fontSize: '12px', letterSpacing: '0.25em', color: 'rgba(80,60,30,0.7)', marginLeft: '6px' }}>
-              材料
-            </span>
-          </div>
-
-          <div
-            style={{
-              position: 'absolute',
-              top: 'max(80px, 12vh)',
-              right: 'max(28px, 4vw)',
-              textAlign: 'right',
-              zIndex: 40,
-              pointerEvents: 'none',
-              mixBlendMode: 'difference',
-              opacity: Math.max(0, 1 - progress * 3),
-              transition: 'opacity 0.3s linear',
-            }}
-          >
-            <div style={{ fontFamily: "'Cinzel', serif", fontSize: '10px', letterSpacing: '0.32em', color: '#7a5a2a', opacity: 0.85 }}>
-              MATERIALS &amp; TEXTURE
-            </div>
-            <div style={{ fontFamily: "'Noto Serif SC', serif", fontSize: '14px', letterSpacing: '0.18em', color: 'rgba(80,60,30,0.65)', marginTop: '4px' }}>
-              金石 · 木作 · 琉璃
-            </div>
-          </div>
-
-          {/* 中央舞台 —— 完整内容 */}
-          <div
-            ref={stageRef}
-            style={{
-              position: 'relative',
-              zIndex: 20,
-              width: 'min(1120px, 92vw)',
-              margin: '0 auto',
-              padding: '0 16px',
-              opacity: 0,
-              willChange: 'transform, opacity',
-            }}
-          >
-            {/* 标题区 */}
-            <div ref={headRef} style={{ textAlign: 'center', marginBottom: 'clamp(28px, 4vh, 48px)' }}>
-              <div
-                style={{
-                  fontFamily: "'Cinzel', serif",
-                  fontSize: '12px',
-                  letterSpacing: '0.45em',
-                  color: 'rgba(122, 90, 42, 0.85)',
-                  marginBottom: '14px',
-                }}
-              >
-                GUANGFU · MATERIAL LANGUAGE
-              </div>
-              <h2
-                style={{
-                  fontFamily: "'Noto Serif SC', serif",
-                  fontSize: 'clamp(30px, 4.4vw, 52px)',
-                  fontWeight: 600,
-                  letterSpacing: '0.06em',
-                  color: 'rgba(60, 44, 22, 0.92)',
-                  margin: 0,
-                  lineHeight: 1.1,
-                }}
-              >
-                六材成器 · 物候生光
-              </h2>
-              <p
-                style={{
-                  marginTop: '16px',
-                  fontFamily: "'Noto Serif SC', serif",
-                  fontSize: 'clamp(13px, 1.4vw, 16px)',
-                  letterSpacing: '0.12em',
-                  lineHeight: 1.9,
-                  color: 'rgba(70, 54, 30, 0.78)',
-                  maxWidth: '760px',
-                  marginLeft: 'auto',
-                  marginRight: 'auto',
-                }}
-              >
-                展馆以岭南六材为骨——铜鸣、木构、琉璃、青石、丝绸、漆色，承载
-                广府的物质记忆与气候智慧。每一材皆是展陈语言，亦是与光、风、人
-                对话的媒介。
-              </p>
-            </div>
-
-            {/* 六张材质卡片 —— 三列网格 */}
+          <div style={{ textAlign: 'center' }}>
             <div
               style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                gap: 'clamp(14px, 1.6vw, 22px)',
+                width: 'min(70vw, 500px)',
+                height: 'min(70vw, 500px)',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                border: '3px solid rgba(201,168,76,0.6)',
+                boxShadow: '0 0 60px rgba(201,168,76,0.4)',
+                margin: '0 auto',
+                animation: 'zoomIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
               }}
             >
-              {MATERIALS.map((m) => {
-                const [r, g, b] = m.hue;
-                return (
-                  <div
-                    key={m.id}
-                    ref={(el) => {
-                      const idx = MATERIALS.findIndex((x) => x.id === m.id);
-                      cardRefs.current[idx] = el;
-                    }}
-                    style={{
-                      position: 'relative',
-                      padding: 'clamp(18px, 2vw, 26px) clamp(16px, 1.8vw, 24px)',
-                      borderRadius: '4px',
-                      background: `linear-gradient(160deg, rgba(${r}, ${g}, ${b}, 0.14) 0%, rgba(${r}, ${g}, ${b}, 0.05) 100%)`,
-                      border: '1px solid rgba(122, 90, 42, 0.22)',
-                      borderTop: `2px solid rgba(${r}, ${g}, ${b}, 0.75)`,
-                      boxShadow: '0 10px 28px rgba(80, 60, 30, 0.10)',
-                      opacity: 0,
-                      willChange: 'transform, opacity',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {/* 卡片右上序号 / 拼音 */}
-                    <div
-                      aria-hidden="true"
-                      style={{
-                        position: 'absolute',
-                        top: '12px',
-                        right: '14px',
-                        fontFamily: "'Cinzel', serif",
-                        fontSize: '10px',
-                        letterSpacing: '0.3em',
-                        color: 'rgba(122, 90, 42, 0.55)',
-                      }}
-                    >
-                      {m.en}
-                    </div>
-
-                    {/* 大字 + 拼音 */}
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-                      <span
-                        style={{
-                          fontFamily: "'Noto Serif SC', serif",
-                          fontSize: 'clamp(40px, 5vw, 56px)',
-                          fontWeight: 600,
-                          color: `rgb(${r}, ${g}, ${b})`,
-                          lineHeight: 1,
-                          textShadow: '0 2px 10px rgba(0,0,0,0.08)',
-                        }}
-                      >
-                        {m.cn}
-                      </span>
-                      <span
-                        style={{
-                          fontFamily: "'Cinzel', serif",
-                          fontSize: '12px',
-                          letterSpacing: '0.18em',
-                          color: 'rgba(80, 60, 30, 0.6)',
-                        }}
-                      >
-                        {m.pinyin}
-                      </span>
-                    </div>
-
-                    {/* 母题 */}
-                    <div
-                      style={{
-                        marginTop: '10px',
-                        fontFamily: "'Noto Serif SC', serif",
-                        fontSize: '14px',
-                        letterSpacing: '0.22em',
-                        color: 'rgba(60, 44, 22, 0.82)',
-                      }}
-                    >
-                      {m.motif}
-                    </div>
-
-                    {/* 分隔线 */}
-                    <div
-                      aria-hidden="true"
-                      style={{
-                        marginTop: '14px',
-                        marginBottom: '14px',
-                        height: '1px',
-                        width: '36px',
-                        background: `rgba(${r}, ${g}, ${b}, 0.6)`,
-                      }}
-                    />
-
-                    {/* 说明 */}
-                    <p
-                      style={{
-                        margin: 0,
-                        fontFamily: "'Noto Serif SC', serif",
-                        fontSize: 'clamp(12.5px, 1.3vw, 14.5px)',
-                        lineHeight: 1.85,
-                        letterSpacing: '0.04em',
-                        color: 'rgba(70, 54, 30, 0.82)',
-                      }}
-                    >
-                      {m.desc}
-                    </p>
-
-                    {/* 展馆应用 */}
-                    <div
-                      style={{
-                        marginTop: '14px',
-                        paddingTop: '10px',
-                        borderTop: '1px dashed rgba(122, 90, 42, 0.28)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                      }}
-                    >
-                      <span
-                        aria-hidden="true"
-                        style={{
-                          display: 'inline-block',
-                          width: '6px',
-                          height: '6px',
-                          borderRadius: '50%',
-                          background: `rgba(${r}, ${g}, ${b}, 0.9)`,
-                        }}
-                      />
-                      <span
-                        style={{
-                          fontFamily: "'Noto Serif SC', serif",
-                          fontSize: '12px',
-                          letterSpacing: '0.16em',
-                          color: 'rgba(80, 60, 30, 0.7)',
-                        }}
-                      >
-                        {m.usage}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+              <img
+                src={showPreview.image}
+                alt={showPreview.name}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+            </div>
+            <h3
+              style={{
+                fontSize: 'clamp(28px, 5vw, 48px)',
+                color: '#fffef8',
+                marginTop: '32px',
+                marginBottom: '8px',
+                fontWeight: '500',
+                letterSpacing: '0.2em',
+                animation: 'fadeInUp 0.5s ease 0.2s forwards',
+                opacity: 0,
+              }}
+            >
+              {showPreview.name}
+            </h3>
+            <p
+              style={{
+                fontSize: 'clamp(12px, 1.8vw, 16px)',
+                color: 'rgba(245,240,232,0.7)',
+                letterSpacing: '0.1em',
+                marginBottom: '24px',
+                animation: 'fadeInUp 0.5s ease 0.3s forwards',
+                opacity: 0,
+              }}
+            >
+              {showPreview.en}
+            </p>
+            <p
+              style={{
+                fontSize: 'clamp(13px, 1.8vw, 16px)',
+                color: 'rgba(245,240,232,0.8)',
+                maxWidth: '400px',
+                margin: '0 auto 24px',
+                lineHeight: '1.8',
+                animation: 'fadeInUp 0.5s ease 0.4s forwards',
+                opacity: 0,
+              }}
+            >
+              {showPreview.description}
+            </p>
+            <div
+              style={{
+                display: 'flex',
+                gap: '24px',
+                justifyContent: 'center',
+                animation: 'fadeInUp 0.5s ease 0.5s forwards',
+                opacity: 0,
+              }}
+            >
+              <span style={{ color: 'rgba(201,168,76,0.8)', fontSize: '14px' }}>
+                温度：{showPreview.temperature}
+              </span>
+              <span style={{ color: 'rgba(201,168,76,0.8)', fontSize: '14px' }}>
+                质感：{showPreview.weight}
+              </span>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @keyframes zoomIn {
+          from {
+            transform: scale(0.5);
+            opacity: 0;
+          }
+          to {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+      `}</style>
     </section>
   );
 }
